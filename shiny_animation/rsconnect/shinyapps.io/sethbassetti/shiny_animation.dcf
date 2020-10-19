@@ -1,0 +1,13 @@
+name: shiny_animation
+title:
+username:
+account: sethbassetti
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2903027
+bundleId: 3706057
+url: https://sethbassetti.shinyapps.io/shiny_animation/
+when: 1601937689.09528
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: animation.gif

@@ -1,0 +1,24 @@
+{
+    "id": "4D9464D5",
+    "path": "~/CompTaG/animation_r.R",
+    "project_path": null,
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1602082228942.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "cursorPosition": "341,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1602090430,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1602090430509,
+    "read_only": false,
+    "read_only_alternatives": []
+}
