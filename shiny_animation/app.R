@@ -1,23 +1,45 @@
 source("animation_helper.R")
+source("ThreeDimPlot.R")
 library("shiny")
+
 
 ui <- fluidPage(
     titlePanel("PD visualizer"),
-    sliderInput(inputId = "num",
-                label = "Choose a number between 0 and two pi",
-                value = 25, min = 0, max = round(2*pi, 2), step=.1, round= -2),
-    checkboxInput("diagonals", label = "Toggle Diagonals", value = FALSE),
-    
-    #hr(),
-    #fluidRow(column(3, verbatimTextOutput("value"))),
-    
-    sidebarLayout(
-        sidebarPanel(
-            fileInput("graphfile", "Choose CV File", accept = ".csv")
-        ),
+    tabsetPanel(
+        tabPanel("2D", fluid=TRUE,
+            sidebarLayout(
+                sidebarPanel(
+                    
+                    sliderInput(inputId = "num",
+                                label = "Choose a number between 0 and two pi",
+                                value = 25, min = 0, max = round(2*pi, 2), step=.1, round= -2),
+                    checkboxInput("diagonals", label = "Toggle Diagonals", value = FALSE),
+                    checkboxInput("filtlines", label="Toggle Filtration lines", value=FALSE),
+                    fileInput("graphfile", "Choose DOT File", accept = ".dot", multiple=FALSE)
+                   
+                ),
+                
+                
+                
+                mainPanel(plotOutput("PD")),
+            ),
+    ),
+    tabPanel("3D", fluid=TRUE,
+             sidebarLayout(
+                 sidebarPanel(
+                     sliderInput(inputId="phi", label="Choose a number between 0 and two pi",
+                                 value = 0, min=-90, max=90, step=1, round=-2),
+                     sliderInput(inputId="theta", label="Choose a number between 0 and two pi",
+                                 value = 0, min=0, max=360, step=1, round=-2)
+                 ),
+                 mainPanel(fluidRow(column(1, offset=0, rglwidgetOutput("ThreePD",  width = 400, height = 150))),
+                           fluidRow(plotOutput('plot1')))
         
-        mainPanel(plotOutput("PD")),
-        
+             )
+             
+             
+             
+             )
     )
     
     
@@ -25,27 +47,18 @@ ui <- fluidPage(
 
 server <- function(input, output){
     
-    
-    vert_x <- c(0, 1, 2, 3, 4)
-    vert_y <- c(2, 0, 2, 0, 2)
-    vert_lab <- c("v1", "v2", "v3", "v4", "v5")
-    verts <- data.frame(vert_x, vert_y, vert_lab, stringsAsFactors = F)
-    edges <- list(
-        make_edge("v1", "v2"),
-        make_edge("v2", "v3"),
-        make_edge("v3", "v4"),
-        make_edge("v4", "v5")
-    )
-    diagLim <- max(c(vert_x, vert_y)) + 1
-    diagLim <- c(-diagLim, diagLim)
-    
+    output$plot1 <- renderPlot(plot(cars))
     output$PD <- renderCachedPlot({
-        createPlot(input$num, verts, edges, input$diagonals, diagLim)
+        createPlot(input$num, input$diagonals, input$filtlines, input$graphfile)
         
         
         
     },
-    cacheKeyExpr = {input$num}
+    cacheKeyExpr = {paste(toString(input$num),"Diagonals: ", input$diagonals, "filtlines: ", input$filtlines, "file: ", input$graphfile$datapath)}
+    )
+    output$ThreePD <- renderRglwidget({
+        plot3d(input$phi, input$theta)
+    }
     )
 }
 

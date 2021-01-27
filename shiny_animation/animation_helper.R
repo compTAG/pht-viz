@@ -2,6 +2,7 @@
 library('TDA')
 library('plotrix')
 library('animation')
+library('stringr')
 
 #Overriding plot function for diagrams, will plot persistence diagrams
 plot.diagram <- function(x, diagLim=NULL, dimension=NULL, col=NULL, rotated=FALSE,
@@ -69,6 +70,7 @@ make_edge <- function(u, v) { return(sort(c(u,v))) }
 order_on_a_vector <- function(verts, theta=pi/2){
   X <- matrix(rbind(verts[,1], verts[,2]), 2, length(verts[,1]))
   rot_mat <- matrix(c(cos(theta), -sin(theta), sin(theta), cos(theta)), 2, 2, byrow = TRUE)
+  print(rot_mat)
   rotated <- solve(rot_mat) %*% X
   labels <- as.character(verts[,3][order(rotated[1,])])
   order <- order(rotated[1,])
@@ -176,16 +178,75 @@ plot_complex <- function(verts, edges, ...){
   }
 }
 
+#This function reads in file input to construct graph nodes and edges
+read_input <- function(graph){
+  conn <- file(graph, open="r")
+  lines <- readLines(conn)
+  close(conn)
+  vert_x <- numeric()
+  vert_y <- numeric()
+  vert_lab <- character()
+  edges <- list(20)
+  edge_num <- 1
+  for (i in 1:length(lines)){
+    line <- lines[i]
+    if(grepl( "pos", line, fixed = TRUE)){
+      vert_labels <- strsplit(line, " ")[[1]]
+      
+      vert_lab <- c(vert_lab, vert_labels[1])
+      pos <- str_extract(line, "[0-9]+,[0-9]+")[[1]]
+      positions <- strsplit(pos, ",")[[1]]
+      vert_x <- c(vert_x, as.numeric(positions[1]))
+      vert_y <- c(vert_y, as.numeric(positions[2]))
+    
+    } else if(grepl("--", line, fixed=TRUE)){
+      edge <- strsplit(line, "--")[[1]]
+      edge <- make_edge(trimws(edge[1]), trimws(edge[2]))
+      edges[[edge_num]] <-  edge
+      
+      edge_num <- edge_num + 1
+      
+      
+    }
+  }
+  verts <- data.frame(vert_x, vert_y, vert_lab, stringsAsFactors = F)
+  diagLim <- max(c(vert_x, vert_y)) + 1
+  diagLim <- c(-diagLim, diagLim)
+  return(list(verts, edges, diagLim))
+}
+
 #This function acts on previous functions to create the entire diagram
-createPlot <- function(i, verts, edges, diagonals, diagLim){
+createPlot <- function(i, diagonals, filtlines, graph){
+  if(is.null(graph)){
+    vert_x <- c(0, 1, 2, 3, 4)
+    vert_y <- c(2, 0, 2, 0, 2)
+    vert_lab <- c("v1", "v2", "v3", "v4", "v5")
+    verts <- data.frame(vert_x, vert_y, vert_lab, stringsAsFactors = F)
+    edges <- list(
+      make_edge("v1", "v2"),
+      make_edge("v2", "v3"),
+      make_edge("v3", "v4"),
+      make_edge("v4", "v5")
+    )
+    
+    diagLim <- max(c(vert_x, vert_y)) + 1
+    diagLim <- c(-diagLim, diagLim)
+  } else {
+    graph_path <- graph$datapath[1]
+    graph_info <- read_input(graph_path)
+    verts <- graph_info[[1]]
+    edges <- graph_info[[2]]
+    diagLim <- graph_info[[3]]
+  }
   order_on_vec_list <- order_on_a_vector(verts = verts, theta = i)
   order_vec <- order_on_vec_list$order
   height_vec <- order_on_vec_list$height
-  #layout(matrix(c(1,2, 2, 3, 4, 4, 5, 5), 2, 4, byrow = TRUE),
-         #widths=c(1,1,1,1), heights=c(1,1))
-  par(mfcol=c(1,2))
-  #plot(0, xaxt = 'n', yaxt = 'n', bty = 'n', pch = '', ylab = '', xlab = '')
+  
+  layout(matrix(c(1, 2, 2, 3, 4, 4, 5, 5), nrow = 2, ncol = 4, byrow = TRUE), heights=
+           c(1, 1))
+  plot(0, xaxt = 'n', yaxt = 'n', bty = 'n', pch = '', ylab = '', xlab = '')
   plot_complex(verts, edges, xaxt = 'n', yaxt = 'n', pch = 20, cex = 1.8, lwd = 1.5, xlab = "", ylab = "")
+  
   for(j in 1:nrow(verts)){
     p1 <- c(cos(i) * height_vec[order_vec == j], sin(i) * height_vec[order_vec == j])
     p2 <- verts[j, 1:2]
@@ -195,8 +256,23 @@ createPlot <- function(i, verts, edges, diagonals, diagLim){
     p2y <- as.numeric(p2[2])
     m <- (p1y - p2y) / (p1x - p2x)
     b <- - m * p2x + p2y
+    if (!is.na(b) && (!is.na(m)) && filtlines){
+      if ((b != Inf) && (m != Inf)) {
+        abline(a = b, b = m)
+      }
+    }
   }
+  plot(0, xaxt = 'n', yaxt = 'n', bty = 'n', pch = '', ylab = '', xlab = '') 
+  plot(NULL, xaxt = 'n', yaxt = 'n', xlim=c(-2,2), ylim=c(-2,2), ylab="", xlab="")
+  draw.circle(0, 0, 1)
+  arrows(0, 0,
+         x1 = cos(i), y1 = 2*sin(i), length = 0.25, angle = 30,
+         code = 2, col = par("fg"), lty = par("lty"),
+         lwd = 2
+  )
   plot_diagram(verts, i, cex = 3.5, edges=edges, diagonals=diagonals, diagLim=diagLim)
+  
+  
 }
 
 
