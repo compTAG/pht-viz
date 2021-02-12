@@ -70,13 +70,15 @@ make_edge <- function(u, v) { return(sort(c(u,v))) }
 order_on_a_vector <- function(verts, theta=pi/2){
   X <- matrix(rbind(verts[,1], verts[,2]), 2, length(verts[,1]))
   rot_mat <- matrix(c(cos(theta), -sin(theta), sin(theta), cos(theta)), 2, 2, byrow = TRUE)
-  print(rot_mat)
   rotated <- solve(rot_mat) %*% X
   labels <- as.character(verts[,3][order(rotated[1,])])
   order <- order(rotated[1,])
   height <- rotated[1, order(rotated[1,])]
+  
   return(list(order=order, height = height, labels = labels))
 }
+
+
 
 #Checks if all of the edges passed in are equal
 edge_equal <- function(e1, e2) {
@@ -165,6 +167,8 @@ plot_diagram <- function(verts, theta1, col=NULL, edges, diagonals,  ...){
     library = "Dionysus"
   )
   diag2 <- fix_diagram(diag, thresh, diagonals=diagonals)
+  print("DIAGRAM: ")
+  print(diag2$diagram)
   plot(diag2$diagram, add = FALSE, col=col, ...)
 }
 

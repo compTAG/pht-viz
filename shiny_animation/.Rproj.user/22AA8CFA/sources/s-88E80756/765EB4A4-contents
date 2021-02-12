@@ -165,6 +165,8 @@ order_on_a_vector <- function(verts, theta = pi/2){
   return(list(order=order, height = height, labels = labels))
 }
 
+
+
 edge_equal <- function(e1, e2) {
   return(all(e1 == e2))
 }
@@ -277,6 +279,7 @@ edges <- list(
 piseq <- seq(0, 2 * pi, length.out = 100)
 
 createGIF <- function(i){
+  print(order_on_a_vector2(verts=verts, theta=i))
   order_on_vec_list <- order_on_a_vector(verts = verts, theta = i)
   order_vec <- order_on_vec_list$order
   height_vec <- order_on_vec_list$height
@@ -293,9 +296,8 @@ createGIF <- function(i){
     p2y <- as.numeric(p2[2])
     m <- (p1y - p2y) / (p1x - p2x)
     b <- - m * p2x + p2y
-    #if ((b != Inf) && (m != Inf)) {
-      #abline(a = b, b = m)
-    #}
+    
+   
   }
   par(family = "sans")
   plot(0, xaxt = 'n', yaxt = 'n', bty = 'n', pch = '', ylab = '', xlab = '')
