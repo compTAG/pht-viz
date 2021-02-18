@@ -167,8 +167,6 @@ plot_diagram <- function(verts, theta1, col=NULL, edges, diagonals,  ...){
     library = "Dionysus"
   )
   diag2 <- fix_diagram(diag, thresh, diagonals=diagonals)
-  print("DIAGRAM: ")
-  print(diag2$diagram)
   plot(diag2$diagram, add = FALSE, col=col, ...)
 }
 

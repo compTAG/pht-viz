@@ -31,6 +31,8 @@ ui <- fluidPage(
                                  value = 0, min=0, max=360, step=1, round=-2),
                      sliderInput(inputId="phi", label="Choose a number between 0 and two pi for phi",
                                  value = 0, min=0, max=180, step=1, round=-2),
+                     checkboxInput("diagonals3d", label = "Toggle Diagonals", value = FALSE),
+                     checkboxInput("filtlines3d", label="Toggle Filtration lines", value=FALSE),
                      fileInput("graphfile3d", "Choose DOT File", accept = ".dot", multiple=FALSE)
                  ),
                  mainPanel(fluidRow(column(1, offset=0, rglwidgetOutput("ThreePD",  width = 400, height = 150))),
@@ -49,7 +51,7 @@ ui <- fluidPage(
 
 server <- function(input, output){
     
-    output$plot1 <- renderPlot({plotPD3D(input$theta, input$phi)})
+    
     output$PD <- renderCachedPlot({
         createPlot(input$num, input$diagonals, input$filtlines, input$graphfile)
         
@@ -58,10 +60,10 @@ server <- function(input, output){
     },
     cacheKeyExpr = {paste(toString(input$num),"Diagonals: ", input$diagonals, "filtlines: ", input$filtlines, "file: ", input$graphfile$datapath)}
     )
+    output$plot1 <- renderPlot({plotPD3D(input$theta, input$phi, input$graphfile3d, input$diagonals3d)})
     output$ThreePD <- renderRglwidget({
-        plot3d(input$phi, input$theta, input$graphfile3d)
+        plot3d(input$phi, input$theta, input$graphfile3d, input$filtlines3d)
     }
     )
 }
-
 shinyApp(ui = ui, server = server)

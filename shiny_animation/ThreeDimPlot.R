@@ -5,14 +5,21 @@ make_edge3d <- function(u, v) { return(sort(c(u,v))) }
 rad2deg <- function(rad) {(rad * 180) / (pi)}
 deg2rad <- function(deg) {(deg * pi) / (180)}
 
-#Orders points in direction of filtration
-order_on_a_vector3d <- function(verts, theta = pi/2, phi=pi){
+get_direction_vector <- function(theta, phi){
+  #Helper function that converts theta and phi (in degrees) into a direction vector
   theta <- deg2rad(theta)
   phi <- deg2rad(phi)
   Z <- sin(phi) * cos(theta)
   X <- sin(phi) * sin(theta)
   Y <- cos(phi)
-  direction <- c(X, Y, Z)
+  
+  return( c(X, Y, Z))
+}
+
+#Orders points in direction of filtration
+order_on_a_vector3d <- function(verts, theta = pi/2, phi=pi){
+  
+  direction <- get_direction_vector(theta, phi)
   heights <- numeric(nrow(verts))
   for (i in 1:nrow(verts)){
     vert_x <- verts[i, 1]
@@ -103,8 +110,20 @@ plot_diagram3d <- function(verts, theta1, phi, col=NULL, edges, diagonals,  ...)
     diagLimit = 5,
     library = "Dionysus"
   )
-  #diag2 <- fix_diagram(diag, thresh, diagonals=diagonals)
-  plot(diag$diagram, add = FALSE, col=col, ...)
+  diag2 <- fix_diagram(diag, thresh, diagonals=diagonals)
+  plot(diag2$diagram, add = FALSE, col=col, ...)
+}
+
+fix_diagram <- function(dgm, thresh, diagonals=FALSE){
+  for(i in 1:length(dgm$diagram[,3])){
+    if(dgm$diagram[i,3] - dgm$diagram[i,2] <= thresh && diagonals == FALSE){
+      dgm$diagram[i,3] <- dgm$diagram[i,2]
+      dgm$diagram[i,2] <- 5000
+      dgm$diagram[i,3] <- 5000
+    }
+  }
+  
+  return(dgm)
 }
 
 make_filtration3d <- function(verts, edges, theta, phi) {
@@ -145,21 +164,36 @@ make_filtration3d <- function(verts, edges, theta, phi) {
   return(list("cmplx" = cmplx, "values" = values, "increasing" = TRUE))
 }
 
-plotPD3D <- function(theta, phi){
+plotPD3D <- function(theta, phi, graph3d, diagonals){
+  #Plots the persistence diagram 
   #Default 'W' shape
-  vert_x <- c(0, 1, 2, 3, 4)
-  vert_y <- c(2, 0, 2, 0, 2)
-  vert_z <- c(0, 0, 0, 0, 0)
-  vert_lab <- c("v1", "v2", "v3", "v4", "v5")
-  verts <- data.frame(vert_x, vert_y,vert_z, vert_lab, stringsAsFactors = F)
-  edges <- list(
-    make_edge3d("v1", "v2"),
-    make_edge3d("v2", "v3"),
-    make_edge3d("v3", "v4"),
-    make_edge3d("v4", "v5")
-  )
+  if(is.null(graph3d)){
+    vert_x <- c(0, 1, 2, 3, 4)
+    vert_y <- c(2, 0, 2, 0, 2)
+    vert_z <- c(0, 0, 0, 0, 0)
+    vert_lab <- c("v1", "v2", "v3", "v4", "v5")
+    verts <- data.frame(vert_x, vert_y,vert_z, vert_lab, stringsAsFactors = F)
+    edges <- list(
+      make_edge3d("v1", "v2"),
+      make_edge3d("v2", "v3"),
+      make_edge3d("v3", "v4"),
+      make_edge3d("v4", "v5")
+    )
+    diagLim <- max(c(vert_x, vert_y)) + 1
+    diagLim <- c(-diagLim, diagLim)
+  } else {
+    #rgl.quit()
+    graph_path <- graph3d$datapath[1]
+    graph_info <- read_input3d(graph_path)
+    verts <- graph_info[[1]]
+    edges <- graph_info[[2]]
+    diagLim <- graph_info[[3]]
+    vert_x <- verts[,1]
+    vert_y <- verts[,2]
+    vert_z <- verts[,3]
+  }
   
-  plot_diagram3d(verts, theta,phi, cex = 3.5, edges=edges)
+  plot_diagram3d(verts, theta,phi, cex = 3.5, edges=edges, diagonals=diagonals, diagLim=diagLim)
   
 }
 #This function reads in file input to construct graph nodes and edges
@@ -180,9 +214,7 @@ read_input3d <- function(graph){
       
       vert_lab <- c(vert_lab, vert_labels[1])
       pos <- str_extract(line, "[0-9]+,[0-9]+,[0-9]+")[[1]]
-      #print()
       positions <- strsplit(pos, ",")[[1]]
-      print(positions)
       vert_x <- c(vert_x, as.numeric(positions[1]))
       vert_y <- c(vert_y, as.numeric(positions[2]))
       vert_z <- c(vert_z, as.numeric(positions[3]))
@@ -203,9 +235,51 @@ read_input3d <- function(graph){
   return(list(verts, edges, diagLim))
 }
 
+#This graphs filtration planes orthogonal to viewpoint vector going through each point
+plot_filtration_planes <- function(verts, edges, direction){
+  x_lim <- max(verts[,1]) + 1
+  y_lim <- max(verts[,2]) + 1
+  z_lim <- max(verts[,3]) + 1
+  cube3d(color="black", alpha=0) %>% scale3d(x_lim,y_lim,z_lim) %>% wire3d(alpha=0)
+  
+  for (i in 1:nrow(verts)){
+    vert = verts[i,]
+    a = direction[1]
+    b = direction[2]
+    c = direction[3]
+    d = -vert[1] * a - vert[2] * b - vert[3] * c
+    planes3d(a,b,c,d,col='black', alpha=0.2)
+  }
+  
+}
+
+
+#This diagram will plot the inputted simplicial complex
+plot_shape3d <- function(verts, edges, ...){
+  vert_x <- verts[,1]
+  vert_y <- verts[,2]
+  vert_z <- verts[,3]
+  
+  #Draws the Points
+  for (i in 1:length(vert_x)){
+    points3d(vert_x[i], vert_y[i], vert_z[i])
+  }
+  #Constructs the edges
+  for(e in edges){
+    e_vert <- verts$vert_lab %in% e
+    p1x = verts$vert_x[e_vert][1]
+    p2x = verts$vert_x[e_vert][2]
+    p1y = verts$vert_y[e_vert][1]
+    p2y = verts$vert_y[e_vert][2]
+    p1z = verts$vert_z[e_vert][1]
+    p2z = verts$vert_z[e_vert][2]
+    lines3d(c(p1x, p2x), c(p1y, p2y), c(p1z, p2z))
+  }
+}
+
 
 #Main function that plots out the persistence diagram of the 3d simplicial complex
-plot3d <- function(phi=0, theta=0, graph3d){
+plot3d <- function(phi=0, theta=0, graph3d, filtlines){
 
   #Default 'W' shape
   if(is.null(graph3d)){
@@ -220,54 +294,29 @@ plot3d <- function(phi=0, theta=0, graph3d){
       make_edge3d("v3", "v4"),
       make_edge3d("v4", "v5")
     )
+    
   } else {
     #rgl.quit()
-    print("hello")
     graph_path <- graph3d$datapath[1]
     graph_info <- read_input3d(graph_path)
     verts <- graph_info[[1]]
     edges <- graph_info[[2]]
     diagLim <- graph_info[[3]]
-    vert_x <- verts[,1]
-    vert_y <- verts[,2]
-    vert_z <- verts[,3]
-    print(vert_z)
+    
   }
-  print(verts)
+  
+  direction <- get_direction_vector(theta, phi)
   
   #Opens up the rgl plot
   open3d(useNULL = TRUE)
   axes3d()
-
-  #Constructs the Complex using rglplot
-  for (i in 1:length(vert_x)){
-   points3d(vert_x[i], vert_y[i], vert_z[i])
-    if(i != length(vert_x)){
-      start <- i
-      end <- i+1
-      segments3d(vert_x[start:end], vert_y[start:end], vert_z[start:end])
-    }
+  plot_shape3d(verts, edges)
+  if(filtlines){
+    plot_filtration_planes(verts, edges, direction)
   }
+ 
   
-  order_on_vec_list <- order_on_a_vector3d(verts = verts, theta, phi)
-  order_vec <- order_on_vec_list$order
-  height_vec <- order_on_vec_list$height
-  
-  for(j in 1:nrow(verts)){
-    p1 <- c(cos(i) * height_vec[order_vec == j], sin(i) * height_vec[order_vec == j])
-    p2 <- verts[j, 1:2]
-    p1x <- as.numeric(p1[1])
-    p1y <- as.numeric(p1[2])
-    p2x <- as.numeric(p2[1])
-    p2y <- as.numeric(p2[2])
-    m <- (p1y - p2y) / (p1x - p2x)
-    b <- - m * p2x + p2y
-  }
-  
-  #plot_diagram3d(verts, theta,phi, cex = 3.5, edges=edges)
 
-  
-  
   highlevel(integer())
   rgl.viewpoint(theta, phi - 90, zoom=.4)
   rglwidget()
