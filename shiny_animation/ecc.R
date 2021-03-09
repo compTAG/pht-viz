@@ -68,5 +68,14 @@ example <- function() {
   print(ecc)
 }
 
+get_interval <- function(ecc, i) {
+  begin <- ecc[[i]][1]
+  if (i+1 > length(ecc)) {
+    end <- Inf
+  } else {
+    end <- ecc[[i+1]][1]
+  }
+  value <- ecc[[i]][2]
+  return(list("begin"=begin, "end"=end, "value"=value))
+}
 
-# create ecc
